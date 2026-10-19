@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR Furniture Scanner - Deteksi Lemari, Meja & Kursi</title>
+    <title>AR Object Scanner - Deteksi Furnitur, Komputer & Benda Ruangan</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- TensorFlow.js & COCO-SSD Model -->
+    <!-- TensorFlow.js, COCO-SSD & MobileNet Models -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
 </head>
 <body>
     <!-- Splash / Loading Overlay -->
@@ -26,7 +27,7 @@
                     <div class="face bottom"></div>
                 </div>
             </div>
-            <h1>AR Furniture Vision</h1>
+            <h1>AR Smart Vision</h1>
             <p id="loading-status">Memuat model kecerdasan buatan (AI)...</p>
             <div class="progress-bar">
                 <div id="progress-fill" class="progress-fill"></div>
@@ -35,6 +36,14 @@
                 <span class="badge badge-chair">🪑 Kursi</span>
                 <span class="badge badge-table">🪵 Meja</span>
                 <span class="badge badge-cabinet">🗄️ Lemari</span>
+                <span class="badge badge-mouse">🖱️ Mouse</span>
+                <span class="badge badge-laptop">💻 Laptop</span>
+                <span class="badge badge-pc">🖥️ PC</span>
+                <span class="badge badge-monitor">🖥️ Monitor</span>
+                <span class="badge badge-speaker">🔊 Speaker</span>
+                <span class="badge badge-glass">🥛 Gelas</span>
+                <span class="badge badge-lamp">💡 Lampu</span>
+                <span class="badge badge-door">🚪 Pintu</span>
             </div>
         </div>
     </div>
@@ -65,8 +74,8 @@
             </div>
 
             <div class="top-controls">
-                <button id="btn-filter-mode" class="hud-btn active" title="Hanya tampilkan Lemari, Meja, Kursi">
-                    <span>🎯 Target: Furnitur</span>
+                <button id="btn-filter-mode" class="hud-btn active" title="Hanya tampilkan objek target (Kursi, Meja, Lemari, Mouse, Laptop, PC, Monitor, Speaker, Gelas, Lampu, Pintu)">
+                    <span>🎯 Target: 11 Benda</span>
                 </button>
                 <button id="btn-voice" class="hud-btn" title="Suara Asisten AR (Text-to-Speech)">
                     <span>🔇 Suara</span>
@@ -119,6 +128,78 @@
                     <div class="stat-meta">
                         <span class="stat-label">LEMARI</span>
                         <strong class="stat-count" id="count-lemari">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-mouse" data-category="mouse">
+                    <div class="stat-icon">🖱️</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">MOUSE</span>
+                        <strong class="stat-count" id="count-mouse">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-laptop" data-category="laptop">
+                    <div class="stat-icon">💻</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">LAPTOP</span>
+                        <strong class="stat-count" id="count-laptop">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-pc" data-category="pc">
+                    <div class="stat-icon">🖳</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">PC</span>
+                        <strong class="stat-count" id="count-pc">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-monitor" data-category="monitor">
+                    <div class="stat-icon">🖥️</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">MONITOR</span>
+                        <strong class="stat-count" id="count-monitor">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-speaker" data-category="speaker">
+                    <div class="stat-icon">🔊</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">SPEAKER</span>
+                        <strong class="stat-count" id="count-speaker">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-gelas" data-category="gelas">
+                    <div class="stat-icon">🥛</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">GELAS</span>
+                        <strong class="stat-count" id="count-gelas">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-lampu" data-category="lampu">
+                    <div class="stat-icon">💡</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">LAMPU</span>
+                        <strong class="stat-count" id="count-lampu">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-pintu" data-category="pintu">
+                    <div class="stat-icon">🚪</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">PINTU</span>
+                        <strong class="stat-count" id="count-pintu">0</strong>
                     </div>
                     <div class="stat-indicator"></div>
                 </div>
