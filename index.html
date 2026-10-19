@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Furniture Scanner - Deteksi Lemari, Meja & Kursi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- TensorFlow.js & COCO-SSD Model -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+</head>
+<body>
+    <!-- Splash / Loading Overlay -->
+    <div id="loading-overlay" class="overlay">
+        <div class="loader-card">
+            <div class="ar-cube-loader">
+                <div class="cube">
+                    <div class="face front"></div>
+                    <div class="face back"></div>
+                    <div class="face right"></div>
+                    <div class="face left"></div>
+                    <div class="face top"></div>
+                    <div class="face bottom"></div>
+                </div>
+            </div>
+            <h1>AR Furniture Vision</h1>
+            <p id="loading-status">Memuat model kecerdasan buatan (AI)...</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="target-badges">
+                <span class="badge badge-chair">🪑 Kursi</span>
+                <span class="badge badge-table">🪵 Meja</span>
+                <span class="badge badge-cabinet">🗄️ Lemari</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main AR Viewport -->
+    <main class="ar-viewport">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="ar-canvas"></canvas>
+
+        <!-- HUD Scan Reticle -->
+        <div class="hud-reticle" id="hud-reticle">
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+            <div class="scan-line"></div>
+            <div class="center-crosshair"></div>
+        </div>
+
+        <!-- Top HUD Bar -->
+        <header class="hud-top">
+            <div class="brand">
+                <div class="pulse-dot" id="ai-pulse"></div>
+                <div>
+                    <h2>AR SCANNER</h2>
+                    <span id="fps-counter" class="mono-text">00 FPS | AI READY</span>
+                </div>
+            </div>
+
+            <div class="top-controls">
+                <button id="btn-filter-mode" class="hud-btn active" title="Hanya tampilkan Lemari, Meja, Kursi">
+                    <span>🎯 Target: Furnitur</span>
+                </button>
+                <button id="btn-voice" class="hud-btn" title="Suara Asisten AR (Text-to-Speech)">
+                    <span>🔇 Suara</span>
+                </button>
+                <button id="btn-switch-cam" class="hud-btn icon-only" title="Ganti Kamera (Depan/Belakang)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8H2l3.5 4 3.5-4H6c0-3.314 2.686-6 6-6s6 2.686 6 6h2zm-4 4l3.5-4 3.5 4h-2c0 4.418-3.582 8-8 8s-8-3.582-8-8h2c0 3.314 2.686 6 6 6s6-2.686 6-6h-3z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Center Focused Object AR Card -->
+        <div id="focus-card" class="focus-card hidden">
+            <div class="focus-icon" id="focus-icon">🪑</div>
+            <div class="focus-info">
+                <span class="focus-tag">OBJEK TERDETEKSI DI TENGAH</span>
+                <h3 id="focus-title">Kursi (Chair)</h3>
+                <p id="focus-desc">Furnitur tempat duduk terdeteksi dengan akurasi tinggi.</p>
+            </div>
+            <div class="focus-confidence">
+                <span id="focus-score">94%</span>
+            </div>
+        </div>
+
+        <!-- Bottom HUD Dashboard -->
+        <footer class="hud-bottom">
+            <!-- Counter Cards for Target Objects -->
+            <div class="stats-grid">
+                <div class="stat-card" id="card-kursi" data-category="kursi">
+                    <div class="stat-icon">🪑</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">KURSI</span>
+                        <strong class="stat-count" id="count-kursi">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-meja" data-category="meja">
+                    <div class="stat-icon">🪵</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">MEJA</span>
+                        <strong class="stat-count" id="count-meja">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+
+                <div class="stat-card" id="card-lemari" data-category="lemari">
+                    <div class="stat-icon">🗄️</div>
+                    <div class="stat-meta">
+                        <span class="stat-label">LEMARI</span>
+                        <strong class="stat-count" id="count-lemari">0</strong>
+                    </div>
+                    <div class="stat-indicator"></div>
+                </div>
+            </div>
+
+            <!-- Controls & Sensitivity Bar -->
+            <div class="control-bar">
+                <div class="slider-group">
+                    <label for="confidence-slider">Sensitivitas AI: <span id="conf-val" class="mono-text">40%</span></label>
+                    <input type="range" id="confidence-slider" min="20" max="85" value="40" step="5">
+                </div>
+
+                <div class="action-buttons">
+                    <label for="upload-input" class="action-btn secondary" title="Uji deteksi menggunakan foto">
+                        📷 Uji Foto
+                        <input type="file" id="upload-input" accept="image/*" hidden>
+                    </label>
+                    <button id="btn-back-cam" class="action-btn primary hidden">
+                        🎥 Kembali ke Kamera AR
+                    </button>
+                    <button id="btn-snapshot" class="action-btn primary">
+                        📸 Ambil tangkapan AR
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Static Image Preview Container (when user tests with uploaded image) -->
+    <img id="uploaded-image" class="hidden" alt="Uploaded preview">
+
+    <script src="app.js"></script>
+</body>
+</html>
+
